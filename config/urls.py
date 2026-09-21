@@ -20,4 +20,6 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include("apps.condominiusSystem.features.Condominius.urls")),
+    path('api/', include("apps.condominiusSystem.features.Unity.urls")),
+    path('auth/', include("apps.condominiusSystem.features.Authentication.urls")),
 ]

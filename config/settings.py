@@ -41,7 +41,16 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'apps.condominiusSystem.apps.CondominiussystemConfig',
+
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+}
+
+AUTH_USER_MODEL = "condominiusSystem.User"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

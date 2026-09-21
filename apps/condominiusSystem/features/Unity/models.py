@@ -10,12 +10,12 @@ class Unity(models.Model):
 
     number = models.CharField(max_length=20)
     building = models.CharField(max_length=20)
-    status = models.CharField(choices=StatusUnity.choices)
+    status = models.CharField(choices=StatusUnity.choices, default=StatusUnity.VAGO)
     is_active = models.BooleanField(default=True)
 
     condominius = models.ForeignKey(
     Condominius,
-    on_delete=models.CASCADE
+    on_delete=models.CASCADE, related_name="unitys"
     )
 
     class Meta:
