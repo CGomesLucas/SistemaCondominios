@@ -32,3 +32,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = User
 		fields = ["id", "username", "email", "first_name", "last_name", "role", "is_superuser"]
+
+
+class UserManagementSerializer(serializers.ModelSerializer):
+	role = serializers.ChoiceField(choices=Role.choices)
+
+	class Meta:
+		model = User
+		fields = ["id", "username", "email", "first_name", "last_name", "role"]
+		read_only_fields = ["id"]
+
+	def validate_email(self, value):
+		if User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists():
+			raise serializers.ValidationError("Este e-mail já está cadastrado.")
+		return value

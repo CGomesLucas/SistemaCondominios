@@ -41,4 +41,15 @@ class UnitySerializer(serializers.ModelSerializer):
         if duplicates.exists():
             raise serializers.ValidationError("Já existe uma unidade com esse bloco e número no condomínio.")
         return attrs
+
+
+class UnityNestedCreateSerializer(UnitySerializer):
+    condominio_id = serializers.PrimaryKeyRelatedField(
+        source="condominio",
+        read_only=True,
+    )
+
+    def validate(self, attrs):
+        attrs["condominio"] = self.context["condominio"]
+        return super().validate(attrs)
         

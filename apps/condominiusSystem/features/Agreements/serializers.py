@@ -20,23 +20,31 @@ from .models import (
 class AgreementInstallmentSerializer(serializers.ModelSerializer):
     acordo_id = serializers.PrimaryKeyRelatedField(
         source="acordo",
-        queryset=Agreement.objects.all(),
+        read_only=True,
     )
 
     class Meta:
         model = AgreementInstallment
         fields = ["id", "acordo_id", "numero", "data_vencimento", "valor", "status", "data_pagamento"]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "numero", "data_vencimento", "valor"]
 
     def validate(self, attrs):
         instance = self.instance
         status = attrs.get("status", getattr(instance, "status", InstallmentStatus.PENDENTE))
         payment_date = attrs.get("data_pagamento", getattr(instance, "data_pagamento", None))
+        if instance and instance.acordo.status == AgreementStatus.CANCELADO:
+            raise serializers.ValidationError(
+                {"acordo_id": "Não é possível alterar parcelas de um acordo cancelado."}
+            )
         if status == InstallmentStatus.PAGO:
             if not payment_date:
                 raise serializers.ValidationError({"data_pagamento": "Informe a data do pagamento."})
             if payment_date > timezone.localdate():
                 raise serializers.ValidationError({"data_pagamento": "A data não pode estar no futuro."})
+        elif payment_date is not None:
+            raise serializers.ValidationError(
+                {"data_pagamento": "Limpe a data de pagamento para manter a parcela pendente."}
+            )
         return attrs
 
     def _update_agreement_status(self, installment):
@@ -99,10 +107,25 @@ class AgreementSerializer(serializers.ModelSerializer):
 
         if not cobrancas:
             raise serializers.ValidationError({"cobrancas_ids": "Selecione ao menos uma cobrança."})
+        if len({charge.pk for charge in cobrancas}) != len(cobrancas):
+            raise serializers.ValidationError(
+                {"cobrancas_ids": "Não informe a mesma cobrança mais de uma vez."}
+            )
         if not 1 <= quantidade <= 48:
             raise serializers.ValidationError({"quantidade_parcelas": "Use entre 1 e 48 parcelas."})
         if not instance and primeira_data < today:
             raise serializers.ValidationError({"data_primeira_parcela": "A primeira parcela não pode vencer no passado."})
+        if instance and instance.status == AgreementStatus.CANCELADO:
+            schedule_changed = (
+                unidade.pk != instance.unidade_id
+                or quantidade != instance.quantidade_parcelas
+                or primeira_data != instance.data_primeira_parcela
+                or {item.pk for item in cobrancas} != set(instance.cobrancas.values_list("pk", flat=True))
+            )
+            if schedule_changed:
+                raise serializers.ValidationError(
+                    {"status": "Não é possível alterar um acordo cancelado."}
+                )
 
         for charge in cobrancas:
             charge.refresh_from_db(fields=["status", "data_vencimento"])
@@ -127,6 +150,22 @@ class AgreementSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Não é possível alterar o cronograma após o pagamento de uma parcela.")
         attrs["cobrancas"] = cobrancas
         return attrs
+
+    def validate_status(self, value):
+        if self.instance is None:
+            if value != AgreementStatus.ATIVO:
+                raise serializers.ValidationError(
+                    "Um acordo novo começa ativo; o status quitado é definido pelo pagamento das parcelas."
+                )
+            return value
+
+        if value == self.instance.status:
+            return value
+        if self.instance.status == AgreementStatus.ATIVO and value == AgreementStatus.CANCELADO:
+            return value
+        raise serializers.ValidationError(
+            "O status quitado é definido pelo pagamento das parcelas; somente acordos ativos podem ser cancelados."
+        )
 
     @staticmethod
     def _add_months(start_date: date, months: int) -> date:

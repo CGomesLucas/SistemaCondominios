@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.exceptions import MethodNotAllowed
 
 from apps.condominiusSystem.features.Authentication.permissions import IsAdminOrReadOnly
 
@@ -22,3 +23,15 @@ class AgreementInstallmentViewSet(viewsets.ModelViewSet):
     serializer_class = AgreementInstallmentSerializer
     permission_classes = [IsAdminOrReadOnly]
     filterset_fields = ["acordo", "status"]
+
+    def create(self, request, *args, **kwargs):
+        raise MethodNotAllowed(
+            "POST",
+            detail="As parcelas são geradas automaticamente ao criar ou alterar o cronograma do acordo.",
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        raise MethodNotAllowed(
+            "DELETE",
+            detail="As parcelas geradas fazem parte do cronograma do acordo e não podem ser excluídas individualmente.",
+        )

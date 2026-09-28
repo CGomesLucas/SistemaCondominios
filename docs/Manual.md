@@ -35,14 +35,15 @@ Authorization: Bearer <access>
 ```
 
 - `POST /auth/token/refresh/`: recebe `{"refresh":"<refresh>"}`.
-- `POST /auth/registro/`: cadastra um usuário com perfil `Client`.
+- `POST /auth/registro/`: cadastra um usuário com perfil `Client`; exige autenticação de `Admin` ou superusuário.
+- `GET`, `PUT`, `PATCH` e `DELETE /auth/usuarios/<id>/`: consulta, atualiza ou exclui um usuário; exige `Admin` ou superusuário. A atualização permite alterar `role`, mas não senha nem privilégios de superusuário.
 - `GET /auth/me/`: retorna o perfil do usuário autenticado.
 
 O token de acesso dura 30 minutos e o de renovação, 7 dias. Todos os recursos da API exigem autenticação. Usuários `Client` podem consultar; criação, alteração e exclusão exigem perfil `Admin` ou superusuário.
 
 ## Endpoints
 
-As coleções oferecem operações REST de listagem, detalhe, criação, atualização e exclusão. As listagens são paginadas em grupos de 25 itens.
+As coleções oferecem operações REST de listagem, detalhe, criação, atualização e exclusão. Unidades são criadas pela rota aninhada por condomínio descrita abaixo. As listagens são paginadas em grupos de 25 itens.
 
 | Recurso | Endpoint | Filtros |
 | --- | --- | --- |
@@ -62,6 +63,24 @@ GET /api/parcelas-acordo/?acordo=4
 ```
 
 Os parâmetros de relacionamento recebem IDs. Cobranças pendentes com vencimento anterior à data local são classificadas como `VENCIDO` durante a consulta.
+
+### Criar unidade
+
+O condomínio é informado na URL, não no corpo da requisição:
+
+```http
+POST /api/condominios/3/unidades/
+Content-Type: application/json
+
+{
+    "number": "101",
+    "building": "A",
+    "responsible_name": "Maria Silva",
+    "status": "OCUPADO"
+}
+```
+
+O endpoint retorna `404` se o condomínio não existir e `400` com uma mensagem de validação se já houver uma unidade com o mesmo bloco e número. `POST /api/unidades/` não é mais aceito.
 
 ### Criar cobrança
 
@@ -95,6 +114,8 @@ Content-Type: application/json
 ```
 
 Um acordo exige uma ou mais cobranças vencidas e em aberto, todas da mesma unidade e sem outro acordo ativo. As parcelas mensais são geradas automaticamente dentro da mesma transação; eventual diferença de centavos fica na última parcela. A resposta inclui as parcelas geradas.
+
+O status inicial do acordo é `ATIVO`; ele passa para `QUITADO` quando todas as parcelas forem pagas. Um acordo ativo pode ser cancelado com `PATCH /api/acordos/<id>/` enviando `{"status":"CANCELADO"}`. O status quitado não pode ser definido manualmente. As parcelas geradas não podem ser criadas ou excluídas individualmente; use `PATCH /api/parcelas-acordo/<id>/` para registrar o pagamento com `status: "PAGO"` e `data_pagamento`. Regras de domínio inválidas retornam `400` com detalhes por campo; operações de criação ou exclusão individual de parcela retornam `405` com a justificativa.
 
 ## Modelo de dados
 

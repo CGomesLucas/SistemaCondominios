@@ -1,15 +1,24 @@
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import UserProfileSerializer, UserRegistrationSerializer
+from .permissions import IsAdmin
+from .serializers import (
+	UserManagementSerializer,
+	UserProfileSerializer,
+	UserRegistrationSerializer,
+)
 
 
 class UserRegistrationView(generics.CreateAPIView):
 	serializer_class = UserRegistrationSerializer
-	permission_classes = [AllowAny]
-	authentication_classes = []
+	permission_classes = [IsAdmin]
+
+
+class UserManagementView(generics.RetrieveUpdateDestroyAPIView):
+	serializer_class = UserManagementSerializer
+	permission_classes = [IsAdmin]
+	queryset = UserManagementSerializer.Meta.model.objects.all()
 
 
 class CurrentUserView(APIView):
