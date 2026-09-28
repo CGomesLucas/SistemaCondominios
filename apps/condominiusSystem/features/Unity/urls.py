@@ -1,10 +1,10 @@
 from rest_framework.routers import DefaultRouter
 
-from .views import UnityViewset
+from .views import UnityViewSet
 
 
 router = DefaultRouter()
 
-router.register("unitys", UnityViewset)
+router.register("unidades", UnityViewSet, basename="unidade")
 
 urlpatterns = router.urls

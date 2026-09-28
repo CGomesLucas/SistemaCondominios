@@ -5,6 +5,6 @@ from .views import CondominiusViewSet
 
 router = DefaultRouter()
 
-router.register("condominius", CondominiusViewSet)
+router.register("condominios", CondominiusViewSet, basename="condominio")
 
 urlpatterns = router.urls

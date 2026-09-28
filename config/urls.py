@@ -21,5 +21,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include("apps.condominiusSystem.features.Condominius.urls")),
     path('api/', include("apps.condominiusSystem.features.Unity.urls")),
+    path('api/', include("apps.condominiusSystem.features.Charge.urls")),
+    path('api/', include("apps.condominiusSystem.features.Agreements.urls")),
     path('auth/', include("apps.condominiusSystem.features.Authentication.urls")),
 ]
